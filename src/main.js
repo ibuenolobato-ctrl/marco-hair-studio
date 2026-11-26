@@ -86,16 +86,102 @@ function buildCalEmbedUrl(rawUrl) {
   if (!safe || safe.startsWith('#')) return '';
   try {
     const url = new URL(safe);
-    if (!url.searchParams.has('embed')) {
-      url.searchParams.set('embed', 'true');
-    }
+    url.searchParams.set('embed', 'true');
     if (!url.searchParams.has('layout')) {
       url.searchParams.set('layout', 'month_view');
+    }
+    if (!url.searchParams.has('theme')) {
+      url.searchParams.set('theme', 'light');
     }
     return url.toString();
   } catch {
     return '';
   }
+}
+
+function isTrustedCalOrigin(origin) {
+  try {
+    const parsed = new URL(origin);
+    if (parsed.protocol !== 'https:') return false;
+    return (
+      parsed.hostname === 'cal.com' ||
+      parsed.hostname === 'app.cal.com' ||
+      parsed.hostname.endsWith('.cal.com')
+    );
+  } catch {
+    return false;
+  }
+}
+
+function handleCalResizeMessage(event) {
+  if (!isTrustedCalOrigin(event.origin)) return;
+  let payload = event.data;
+  if (typeof payload === 'string') {
+    try {
+      payload = JSON.parse(payload);
+    } catch {
+      return;
+    }
+  }
+  if (!payload || typeof payload !== 'object') return;
+
+  const rawHeight = Number(
+    payload?.data?.iframeHeight ??
+      payload?.data?.height ??
+      payload?.iframeHeight ??
+      payload?.height
+  );
+  if (!Number.isFinite(rawHeight) || rawHeight <= 0) return;
+
+  const iframe = document.getElementById('cal-embed-iframe');
+  if (!iframe) return;
+
+  const clampedHeight = Math.min(2400, Math.max(540, Math.ceil(rawHeight)));
+  iframe.style.height = `${clampedHeight}px`;
+}
+
+function mountCalEmbed(container, embedSrc, cleanUrl) {
+  const existingIframe = container.querySelector('#cal-embed-iframe');
+  const existingFallback = container.querySelector('#cal-fallback-link');
+
+  if (existingIframe && existingFallback) {
+    if (existingIframe.getAttribute('src') !== embedSrc) {
+      existingIframe.style.height = '';
+      existingIframe.src = embedSrc;
+    }
+    existingFallback.href = cleanUrl;
+    return;
+  }
+
+  container.innerHTML = '';
+
+  const wrapper = document.createElement('div');
+  wrapper.className = 'space-y-3';
+
+  const iframe = document.createElement('iframe');
+  iframe.id = 'cal-embed-iframe';
+  iframe.src = embedSrc;
+  iframe.title = 'Calendario de reservas';
+  iframe.loading = 'lazy';
+  iframe.setAttribute('allow', 'payment');
+  iframe.className = 'cal-embed-frame';
+
+  const fallbackRow = document.createElement('div');
+  fallbackRow.className = 'flex justify-end';
+
+  const fallbackLink = document.createElement('a');
+  fallbackLink.id = 'cal-fallback-link';
+  fallbackLink.href = cleanUrl;
+  fallbackLink.target = '_blank';
+  fallbackLink.rel = 'noopener noreferrer';
+  fallbackLink.className =
+    'text-xs font-medium text-[var(--color-muted)] underline underline-offset-4 hover:text-[var(--color-ink)]';
+  fallbackLink.textContent = '¿Problemas para ver el calendario? Abrir en nueva pestaña';
+
+  fallbackRow.appendChild(fallbackLink);
+  wrapper.appendChild(iframe);
+  wrapper.appendChild(fallbackRow);
+  container.appendChild(wrapper);
 }
 
 function buildWhatsappHref(whatsappNumber, serviceName) {
@@ -257,19 +343,7 @@ function renderBookingSection() {
   } else if (provider === 'calcom') {
     const embedSrc = buildCalEmbedUrl(safeTargetUrl);
     if (embedSrc) {
-      container.innerHTML = `
-        <iframe
-          src="${escapeHtml(embedSrc)}"
-          title="Calendario de reservas"
-          loading="lazy"
-          class="cal-embed-frame"
-        ></iframe>
-        <div class="flex justify-end">
-          <a href="${escapeHtml(safeTargetUrl)}" target="_blank" rel="noopener noreferrer" class="text-xs font-medium text-[var(--color-muted)] underline underline-offset-4 hover:text-[var(--color-ink)]">
-            Abrir calendario en ventana nueva
-          </a>
-        </div>
-      `;
+      mountCalEmbed(container, embedSrc, safeTargetUrl);
     } else {
       container.innerHTML = `
         <div class="py-6 text-center space-y-3">
@@ -381,7 +455,14 @@ function renderFooter() {
   `;
 }
 
+let resizeListenerRegistered = false;
+
 function init() {
+  if (!resizeListenerRegistered) {
+    window.addEventListener('message', handleCalResizeMessage);
+    resizeListenerRegistered = true;
+  }
+
   if (isWireframe) {
     const banner = document.getElementById('wireframe-banner');
     if (banner) banner.classList.remove('hidden');

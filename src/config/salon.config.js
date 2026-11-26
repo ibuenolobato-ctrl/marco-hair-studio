@@ -3,6 +3,15 @@
  * Rellena únicamente los campos que quieras mostrar; cualquier campo vacío ("") o lista vacía ([]) se oculta automáticamente.
  */
 export const SALON_CONFIG = {
+  site: {
+    // Dominio público final sin barra final (ej. "https://tusalon.com"). Se usa en canonical, og:url y JSON-LD.
+    domain: '',
+    // Ruta o URL de imagen para compartir en redes (ej. "/og-image.jpg" o "https://...")
+    ogImage: '',
+    // Idioma/región Open Graph (por defecto "es_ES")
+    locale: 'es_ES'
+  },
+
   business: {
     // Nombre comercial visible en cabecera, título de pestaña y SEO
     name: '',

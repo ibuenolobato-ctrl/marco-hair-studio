@@ -71,5 +71,28 @@ En `src/styles/main.css` solo hay 4 variables de color en `:root`:
 
 ---
 
-## 5. Compilar y desplegar
-Ejecuta `npm run build`. La carpeta generada `dist/` es 100 % estática y lista para subir a **Cloudflare Pages**, **Netlify** o **Vercel**.
+## 5. Verificación previa y despliegue estático (Cloudflare Pages o Vercel)
+
+Antes de subir a producción, ejecuta en la raíz del proyecto:
+
+```bash
+npm run check:ready
+npm run build
+```
+
+- `npm run check:ready` comprueba que no falten los datos mínimos (`business.name`, `business.address`, al menos 1 servicio y URL de reservas o WhatsApp).
+- `npm run build` genera la carpeta estática `dist/`.
+
+### Despliegue desde GitHub
+1. **Cloudflare Pages:**
+   - Conecta el repositorio de GitHub.
+   - **Build command:** `npm run build`
+   - **Build output directory:** `dist`
+   - **Variables de entorno:** ninguna obligatoria.
+   - Incluye soporte automático de cabeceras de seguridad mediante `public/_headers`.
+2. **Vercel:**
+   - Importa el repositorio desde GitHub (detectará Vite automáticamente).
+   - **Build Command:** `npm run build`
+   - **Output Directory:** `dist`
+   - **Environment Variables:** ninguna obligatoria.
+

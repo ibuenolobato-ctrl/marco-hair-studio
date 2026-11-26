@@ -7,7 +7,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "check:ready": "node scripts/check-ready.mjs"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.5",

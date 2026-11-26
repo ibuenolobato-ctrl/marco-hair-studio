@@ -83,8 +83,10 @@
   }
 
   .cal-embed-frame {
+    display: block;
     width: 100%;
     min-height: 540px;
+    height: 640px;
     border: 0;
     border-radius: 12px;
     background-color: var(--color-surface);
