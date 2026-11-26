@@ -82,13 +82,9 @@
     border-color: var(--color-ink);
   }
 
-  .cal-embed-frame {
-    display: block;
+  .cal-embed-mount {
     width: 100%;
-    min-height: 540px;
-    height: 640px;
-    border: 0;
-    border-radius: 12px;
-    background-color: var(--color-surface);
+    min-height: 480px;
+    overflow: visible;
   }
 }

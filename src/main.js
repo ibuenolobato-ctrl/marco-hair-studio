@@ -81,97 +81,107 @@ function sanitizeHref(rawUrl) {
   return '';
 }
 
-function buildCalEmbedUrl(rawUrl) {
+function parseCalUrl(rawUrl) {
   const safe = sanitizeHref(rawUrl);
-  if (!safe || safe.startsWith('#')) return '';
+  if (!safe || safe.startsWith('#')) return null;
   try {
     const url = new URL(safe);
-    url.searchParams.set('embed', 'true');
-    if (!url.searchParams.has('layout')) {
-      url.searchParams.set('layout', 'month_view');
+    if (url.protocol !== 'https:') return null;
+    const host = url.hostname.toLowerCase();
+
+    let calOrigin = '';
+    if (host === 'cal.com' || host === 'app.cal.com' || host.endsWith('.cal.com')) {
+      calOrigin = 'https://app.cal.com';
+    } else if (host === 'cal.eu' || host === 'app.cal.eu' || host.endsWith('.cal.eu')) {
+      calOrigin = 'https://app.cal.eu';
+    } else {
+      return null;
     }
-    if (!url.searchParams.has('theme')) {
-      url.searchParams.set('theme', 'light');
-    }
-    return url.toString();
+
+    const calLink = url.pathname.replace(/^\/+|\/+$/g, '');
+    if (!calLink) return null;
+
+    return {
+      origin: calOrigin,
+      calLink,
+      cleanUrl: url.toString()
+    };
   } catch {
-    return '';
+    return null;
   }
 }
 
-function isTrustedCalOrigin(origin) {
-  try {
-    const parsed = new URL(origin);
-    if (parsed.protocol !== 'https:') return false;
-    return (
-      parsed.hostname === 'cal.com' ||
-      parsed.hostname === 'app.cal.com' ||
-      parsed.hostname.endsWith('.cal.com')
-    );
-  } catch {
-    return false;
-  }
+let lastMountedCalKey = '';
+let calMountSeq = 0;
+
+function ensureCalLoader(calOrigin) {
+  if (typeof window.Cal === 'function') return;
+
+  (function (C, A, L) {
+    const p = function (a, ar) {
+      a.q.push(ar);
+    };
+    const d = C.document;
+    C.Cal =
+      C.Cal ||
+      function () {
+        const cal = C.Cal;
+        const ar = arguments;
+        if (!cal.loaded) {
+          cal.ns = {};
+          cal.q = cal.q || [];
+          const script = d.createElement('script');
+          script.src = A;
+          script.async = true;
+          d.head.appendChild(script);
+          cal.loaded = true;
+        }
+        if (ar[0] === L) {
+          const api = function () {
+            p(api, arguments);
+          };
+          const namespace = ar[1];
+          api.q = api.q || [];
+          if (typeof namespace === 'string') {
+            cal.ns[namespace] = cal.ns[namespace] || api;
+            p(cal.ns[namespace], ar);
+            p(cal, ['initNamespace', namespace]);
+          } else {
+            p(cal, ar);
+          }
+          return;
+        }
+        p(cal, ar);
+      };
+  })(window, `${calOrigin}/embed/embed.js`, 'init');
 }
 
-function handleCalResizeMessage(event) {
-  if (!isTrustedCalOrigin(event.origin)) return;
-  let payload = event.data;
-  if (typeof payload === 'string') {
-    try {
-      payload = JSON.parse(payload);
-    } catch {
-      return;
-    }
-  }
-  if (!payload || typeof payload !== 'object') return;
-
-  const rawHeight = Number(
-    payload?.data?.iframeHeight ??
-      payload?.data?.height ??
-      payload?.iframeHeight ??
-      payload?.height
-  );
-  if (!Number.isFinite(rawHeight) || rawHeight <= 0) return;
-
-  const iframe = document.getElementById('cal-embed-iframe');
-  if (!iframe) return;
-
-  const clampedHeight = Math.min(2400, Math.max(540, Math.ceil(rawHeight)));
-  iframe.style.height = `${clampedHeight}px`;
-}
-
-function mountCalEmbed(container, embedSrc, cleanUrl) {
-  const existingIframe = container.querySelector('#cal-embed-iframe');
+function mountCalInlineEmbed(container, calInfo) {
+  const calKey = `${calInfo.origin}|${calInfo.calLink}`;
+  const existingMount = container.querySelector('#cal-embed-mount');
   const existingFallback = container.querySelector('#cal-fallback-link');
 
-  if (existingIframe && existingFallback) {
-    if (existingIframe.getAttribute('src') !== embedSrc) {
-      existingIframe.style.height = '';
-      existingIframe.src = embedSrc;
-    }
-    existingFallback.href = cleanUrl;
+  if (existingMount && existingFallback && lastMountedCalKey === calKey) {
+    existingFallback.href = calInfo.cleanUrl;
     return;
   }
 
+  lastMountedCalKey = calKey;
   container.innerHTML = '';
 
   const wrapper = document.createElement('div');
   wrapper.className = 'space-y-3';
 
-  const iframe = document.createElement('iframe');
-  iframe.id = 'cal-embed-iframe';
-  iframe.src = embedSrc;
-  iframe.title = 'Calendario de reservas';
-  iframe.loading = 'lazy';
-  iframe.setAttribute('allow', 'payment');
-  iframe.className = 'cal-embed-frame';
+  const mountEl = document.createElement('div');
+  mountEl.id = 'cal-embed-mount';
+  mountEl.className = 'cal-embed-mount';
 
   const fallbackRow = document.createElement('div');
   fallbackRow.className = 'flex justify-end';
 
   const fallbackLink = document.createElement('a');
   fallbackLink.id = 'cal-fallback-link';
-  fallbackLink.href = cleanUrl;
+  fallbackLink.href = calInfo.cleanUrl;
   fallbackLink.target = '_blank';
   fallbackLink.rel = 'noopener noreferrer';
   fallbackLink.className =
@@ -179,9 +189,26 @@ function mountCalEmbed(container, embedSrc, cleanUrl) {
   fallbackLink.textContent = '¿Problemas para ver el calendario? Abrir en nueva pestaña';
 
   fallbackRow.appendChild(fallbackLink);
-  wrapper.appendChild(iframe);
+  wrapper.appendChild(mountEl);
   wrapper.appendChild(fallbackRow);
   container.appendChild(wrapper);
+
+  ensureCalLoader(calInfo.origin);
+  const ns = `salon_${++calMountSeq}`;
+  window.Cal('init', ns, { origin: calInfo.origin });
+  window.Cal.ns[ns]('inline', {
+    elementOrSelector: '#cal-embed-mount',
+    calLink: calInfo.calLink,
+    config: {
+      layout: 'month_view',
+      theme: 'light'
+    }
+  });
+  window.Cal.ns[ns]('ui', {
+    theme: 'light',
+    hideEventTypeDetails: false,
+    layout: 'month_view'
+  });
 }
 
 function buildWhatsappHref(whatsappNumber, serviceName) {
@@ -323,6 +350,7 @@ function renderBookingSection() {
   }
 
   if (isWireframe) {
+    lastMountedCalKey = '';
     container.innerHTML = `
       <div class="flex min-h-64 flex-col items-center justify-center rounded-xl border border-dashed border-[color-mix(in_srgb,var(--color-ink)_25%,transparent)] p-6 text-center space-y-2">
         <span class="text-sm font-semibold">[Calendario de reservas embebido]</span>
@@ -332,6 +360,7 @@ function renderBookingSection() {
       </div>
     `;
   } else if (!safeTargetUrl || safeTargetUrl.startsWith('#')) {
+    lastMountedCalKey = '';
     container.innerHTML = `
       <div class="py-8 px-4 text-center space-y-2">
         <p class="text-sm font-semibold">Falta configurar la URL de reservas</p>
@@ -340,28 +369,23 @@ function renderBookingSection() {
         </p>
       </div>
     `;
-  } else if (provider === 'calcom') {
-    const embedSrc = buildCalEmbedUrl(safeTargetUrl);
-    if (embedSrc) {
-      mountCalEmbed(container, embedSrc, safeTargetUrl);
+  } else {
+    const calInfo = provider === 'calcom' ? parseCalUrl(safeTargetUrl) : null;
+    if (calInfo) {
+      mountCalInlineEmbed(container, calInfo);
     } else {
+      lastMountedCalKey = '';
       container.innerHTML = `
-        <div class="py-6 text-center space-y-3">
-          <p class="text-sm text-[var(--color-muted)]">La URL de reserva configurada no es válida.</p>
+        <div class="py-6 text-center space-y-4">
+          <p class="text-sm text-[var(--color-muted)]">
+            Pulsa el botón para elegir día y hora en nuestra agenda externa.
+          </p>
+          <a href="${escapeHtml(safeTargetUrl)}" target="_blank" rel="noopener noreferrer" class="btn-primary badge-pill">
+            ${escapeHtml(fallbackLabel)}
+          </a>
         </div>
       `;
     }
-  } else {
-    container.innerHTML = `
-      <div class="py-6 text-center space-y-4">
-        <p class="text-sm text-[var(--color-muted)]">
-          Pulsa el botón para elegir día y hora en nuestra agenda externa.
-        </p>
-        <a href="${escapeHtml(safeTargetUrl)}" target="_blank" rel="noopener noreferrer" class="btn-primary badge-pill">
-          ${escapeHtml(fallbackLabel)}
-        </a>
-      </div>
-    `;
   }
 
   if (secondaryActions) {
@@ -455,14 +479,7 @@ function renderFooter() {
   `;
 }
 
-let resizeListenerRegistered = false;
-
 function init() {
-  if (!resizeListenerRegistered) {
-    window.addEventListener('message', handleCalResizeMessage);
-    resizeListenerRegistered = true;
-  }
-
   if (isWireframe) {
     const banner = document.getElementById('wireframe-banner');
     if (banner) banner.classList.remove('hidden');
