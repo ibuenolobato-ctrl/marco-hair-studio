@@ -8,39 +8,39 @@
   <!--SALON_SEO-->
 </head>
 <body>
-  <div id="wireframe-banner" class="hidden border-b border-[color-mix(in_srgb,var(--color-ink)_12%,transparent)] bg-[var(--color-surface)] px-4 py-2 text-center text-xs font-medium text-[var(--color-muted)]">
+  <div id="wireframe-banner" class="hidden border-b ios-divider bg-[var(--color-surface)] px-4 py-2 text-center text-xs font-medium text-[var(--color-muted)]">
     Vista wireframe de maquetación (solo desarrollo). Edita <code class="font-mono text-[var(--color-ink)]">src/config/salon.config.js</code> para cargar datos reales.
   </div>
 
-  <div class="mx-auto flex min-h-dvh w-full max-w-2xl flex-col px-4 py-6 sm:px-6 sm:py-10">
-    <!-- CABECERA COMPACTA -->
-    <header id="salon-header" class="pb-6 border-b border-[color-mix(in_srgb,var(--color-ink)_12%,transparent)]"></header>
+  <div class="mx-auto flex min-h-dvh w-full max-w-lg flex-col gap-7 px-4 py-6 sm:py-10">
+    <!-- CABECERA TIPO PERFIL DE NEGOCIO -->
+    <header id="salon-header"></header>
 
     <!-- CONTENIDO PRINCIPAL -->
-    <main class="flex-1 space-y-10 py-8">
-      <!-- SERVICIOS -->
-      <section id="servicios" aria-labelledby="services-heading" class="space-y-4">
-        <div class="flex items-baseline justify-between gap-3">
-          <h2 id="services-heading" class="text-lg font-bold tracking-tight">Servicios</h2>
-          <span id="services-count" class="text-xs font-medium text-[var(--color-muted)] badge-pill"></span>
+    <main class="flex-1 space-y-7">
+      <!-- SERVICIOS DE PELUQUERÍA -->
+      <section id="servicios" aria-labelledby="services-heading" class="space-y-2.5">
+        <div class="flex items-center justify-between gap-3">
+          <h2 id="services-heading" class="ios-section-label">Servicios de peluquería</h2>
+          <span id="services-count" class="px-3 text-xs font-medium text-[var(--color-muted)] tabular-nums badge-pill"></span>
         </div>
-        <div id="services-list" class="space-y-3"></div>
+        <div id="services-list"></div>
       </section>
 
-      <!-- RESERVAS -->
-      <section id="reservar" aria-labelledby="booking-heading" class="space-y-4">
+      <!-- RESERVAR CITA -->
+      <section id="reservar" aria-labelledby="booking-heading" class="space-y-2.5">
         <div class="space-y-1">
-          <h2 id="booking-heading" class="text-lg font-bold tracking-tight">Reservar cita</h2>
-          <p id="active-service-label" class="text-sm text-[var(--color-muted)]"></p>
+          <h2 id="booking-heading" class="ios-section-label">Reservar cita</h2>
+          <p id="active-service-label" class="px-3 text-xs text-[var(--color-muted)]"></p>
         </div>
 
-        <div id="booking-container" class="surface-card p-4 sm:p-5 space-y-4"></div>
-        <div id="booking-secondary-actions" class="flex flex-wrap items-center gap-3"></div>
+        <div id="booking-container" class="ios-card p-5 space-y-4"></div>
+        <div id="booking-secondary-actions" class="flex flex-wrap items-center gap-2.5 px-1"></div>
       </section>
     </main>
 
-    <!-- PIE MÍNIMO -->
-    <footer id="salon-footer" class="pt-6 border-t border-[color-mix(in_srgb,var(--color-ink)_12%,transparent)] text-xs text-[var(--color-muted)]"></footer>
+    <!-- INFORMACIÓN PRÁCTICA -->
+    <footer id="salon-footer" class="space-y-2.5 pb-2"></footer>
   </div>
 
   <script type="module" src="/src/main.js"></script>

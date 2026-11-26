@@ -4,7 +4,7 @@ import { SALON_CONFIG } from './config/salon.config.js';
 const WIREFRAME_DATA = {
   business: {
     name: '[Nombre del salón]',
-    shortDescription: '[Descripción breve del salón y ubicación]',
+    shortDescription: '[Subtítulo breve del salón]',
     address: '[Dirección del salón]',
     googleMapsUrl: '#ubicacion-wireframe',
     phoneDisplay: '[Teléfono]',
@@ -12,7 +12,7 @@ const WIREFRAME_DATA = {
     instagramUrl: '#instagram-wireframe'
   },
   hours: [
-    { days: '[Días laborables]', time: '[Horario mañana · tarde]' },
+    { days: '[Lunes a Viernes]', time: '[Horario mañana · tarde]' },
     { days: '[Sábados]', time: '[Horario mañana]' }
   ],
   booking: {
@@ -215,7 +215,7 @@ function buildWhatsappHref(whatsappNumber, serviceName) {
   const digits = cleanText(whatsappNumber).replace(/\D+/g, '');
   if (!digits) return '';
   const text = serviceName
-    ? `Hola, me gustaría consultar cita para: ${serviceName}`
+    ? `Hola, me gustaría pedir cita para: ${serviceName}`
     : 'Hola, me gustaría pedir cita.';
   return `https://wa.me/${digits}?text=${encodeURIComponent(text)}`;
 }
@@ -243,30 +243,49 @@ function renderHeader() {
 
   const addressHtml = address
     ? mapsUrl
-      ? `<a href="${escapeHtml(mapsUrl)}" ${mapsUrl.startsWith('#') ? '' : 'target="_blank" rel="noopener noreferrer"'} class="inline-flex items-center gap-1.5 text-sm text-[var(--color-muted)] underline decoration-[color-mix(in_srgb,var(--color-ink)_25%,transparent)] underline-offset-4 hover:text-[var(--color-ink)]">${escapeHtml(address)}</a>`
-      : `<p class="text-sm text-[var(--color-muted)]">${escapeHtml(address)}</p>`
+      ? `<a href="${escapeHtml(mapsUrl)}" ${mapsUrl.startsWith('#') ? '' : 'target="_blank" rel="noopener noreferrer"'} class="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--color-accent)] hover:underline underline-offset-4">
+          <svg class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><circle cx="12" cy="11" r="3"/></svg>
+          <span>${escapeHtml(address)}</span>
+        </a>`
+      : `<p class="text-xs font-medium text-[var(--color-muted)]">${escapeHtml(address)}</p>`
     : '';
 
   const actions = [];
   if (phoneDisplay && telDigits) {
     actions.push(
-      `<a href="${isWireframe ? '#telefono-wireframe' : `tel:${escapeHtml(telDigits)}`}" class="btn-secondary badge-pill">${escapeHtml(phoneDisplay)}</a>`
+      `<a href="${isWireframe ? '#telefono-wireframe' : `tel:${escapeHtml(telDigits)}`}" class="btn-pill-secondary badge-pill tabular-nums">Llamar &middot; ${escapeHtml(phoneDisplay)}</a>`
     );
   }
   if (waHref) {
     actions.push(
-      `<a href="${isWireframe ? '#whatsapp-wireframe' : escapeHtml(waHref)}" ${isWireframe ? '' : 'target="_blank" rel="noopener noreferrer"'} class="btn-primary badge-pill">WhatsApp</a>`
+      `<a href="${isWireframe ? '#whatsapp-wireframe' : escapeHtml(waHref)}" ${isWireframe ? '' : 'target="_blank" rel="noopener noreferrer"'} class="btn-pill-primary badge-pill">WhatsApp</a>`
     );
   }
 
   header.innerHTML = `
-    <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-      <div class="space-y-1.5">
-        ${name ? `<h1 class="text-2xl font-bold tracking-tight sm:text-3xl">${escapeHtml(name)}</h1>` : ''}
-        ${shortDesc ? `<p class="text-sm text-[var(--color-muted)]">${escapeHtml(shortDesc)}</p>` : ''}
-        ${addressHtml}
+    <div class="ios-card p-5 space-y-4">
+      <div class="flex items-center gap-3.5">
+        <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[var(--color-ink)] text-[var(--color-surface)]" aria-hidden="true">
+          <svg class="h-6 w-6" viewBox="0 0 64 64" fill="none">
+            <circle cx="23" cy="41" r="6.5" stroke="currentColor" stroke-width="4"/>
+            <circle cx="41" cy="41" r="6.5" stroke="currentColor" stroke-width="4"/>
+            <path d="M27.5 36.5L42 16" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
+            <path d="M36.5 36.5L22 16" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="min-w-0 flex-1 space-y-0.5">
+          ${name ? `<h1 class="text-xl font-bold tracking-tight text-[var(--color-ink)] sm:text-2xl">${escapeHtml(name)}</h1>` : ''}
+          ${shortDesc ? `<p class="text-sm text-[var(--color-muted)]">${escapeHtml(shortDesc)}</p>` : ''}
+        </div>
       </div>
-      ${actions.length > 0 ? `<div class="flex flex-wrap items-center gap-2 shrink-0">${actions.join('')}</div>` : ''}
+      ${
+        addressHtml || actions.length > 0
+          ? `<div class="flex flex-col gap-3 border-t ios-divider pt-3.5 sm:flex-row sm:items-center sm:justify-between">
+              ${addressHtml || '<span></span>'}
+              ${actions.length > 0 ? `<div class="flex flex-wrap items-center gap-2">${actions.join('')}</div>` : ''}
+            </div>`
+          : ''
+      }
     </div>
   `;
 }
@@ -281,19 +300,19 @@ function renderServices() {
     : [];
 
   if (countEl) {
-    countEl.textContent = services.length > 0 ? `${services.length} disponibles` : '';
+    countEl.textContent = services.length > 0 ? `${services.length}` : '';
   }
 
   if (services.length === 0) {
     listEl.innerHTML = `
-      <div class="surface-card p-5 text-sm text-[var(--color-muted)]">
-        No hay servicios configurados todavía. Añádelos en <code class="font-mono text-xs text-[var(--color-ink)]">src/config/salon.config.js</code>.
+      <div class="ios-card p-5 text-sm text-[var(--color-muted)]">
+        Servicios disponibles próximamente.
       </div>
     `;
     return;
   }
 
-  listEl.innerHTML = services
+  const rowsHtml = services
     .map((srv, idx) => {
       const name = cleanText(srv.name);
       const duration = cleanText(srv.duration);
@@ -302,21 +321,23 @@ function renderServices() {
       const meta = [duration, price].filter(Boolean).join(' · ');
 
       return `
-        <article class="surface-card p-4 sm:p-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div class="space-y-1 min-w-0">
-            <div class="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
-              <h3 class="text-base font-semibold tracking-tight">${escapeHtml(name)}</h3>
-              ${meta ? `<span class="text-xs font-medium text-[var(--color-muted)] badge-pill">${escapeHtml(meta)}</span>` : ''}
+        <article class="flex items-center justify-between gap-4 p-4 sm:px-5 sm:py-4">
+          <div class="min-w-0 flex-1 space-y-0.5">
+            <div class="flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5">
+              <h3 class="text-[15px] font-semibold tracking-tight text-[var(--color-ink)]">${escapeHtml(name)}</h3>
+              ${meta ? `<span class="text-xs font-medium text-[var(--color-muted)] tabular-nums badge-pill">${escapeHtml(meta)}</span>` : ''}
             </div>
-            ${desc ? `<p class="text-sm text-[var(--color-muted)]">${escapeHtml(desc)}</p>` : ''}
+            ${desc ? `<p class="text-xs text-[var(--color-muted)] leading-relaxed">${escapeHtml(desc)}</p>` : ''}
           </div>
-          <button type="button" data-service-index="${idx}" class="btn-primary badge-pill self-start sm:self-center">
+          <button type="button" data-service-index="${idx}" class="btn-pill-primary badge-pill text-xs sm:text-sm">
             Reservar
           </button>
         </article>
       `;
     })
     .join('');
+
+  listEl.innerHTML = `<div class="ios-card divide-y ios-divider overflow-hidden">${rowsHtml}</div>`;
 
   listEl.querySelectorAll('[data-service-index]').forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -346,27 +367,35 @@ function renderBookingSection() {
   if (activeLabel) {
     activeLabel.textContent = selectedService?.name
       ? `Servicio seleccionado: ${selectedService.name}${selectedService.duration ? ` (${selectedService.duration})` : ''}`
-      : 'Elige fecha y hora en el calendario o selecciona un servicio arriba.';
+      : 'Elige fecha y hora o selecciona un servicio arriba.';
   }
 
   if (isWireframe) {
     lastMountedCalKey = '';
     container.innerHTML = `
-      <div class="flex min-h-64 flex-col items-center justify-center rounded-xl border border-dashed border-[color-mix(in_srgb,var(--color-ink)_25%,transparent)] p-6 text-center space-y-2">
+      <div class="flex min-h-60 flex-col items-center justify-center rounded-2xl border border-dashed ios-divider p-6 text-center space-y-2">
         <span class="text-sm font-semibold">[Calendario de reservas embebido]</span>
         <p class="text-xs text-[var(--color-muted)] max-w-sm">
-          ${selectedService ? `Cargando enlace para: ${escapeHtml(selectedService.name)}` : 'Aquí se cargará el embed de Cal.com o enlace externo configurado.'}
+          ${selectedService ? `Cargando enlace para: ${escapeHtml(selectedService.name)}` : 'Aquí se cargará el embed oficial de Cal.com o enlace externo.'}
         </p>
       </div>
     `;
   } else if (!safeTargetUrl || safeTargetUrl.startsWith('#')) {
     lastMountedCalKey = '';
     container.innerHTML = `
-      <div class="py-8 px-4 text-center space-y-2">
-        <p class="text-sm font-semibold">Falta configurar la URL de reservas</p>
-        <p class="text-xs text-[var(--color-muted)] max-w-md mx-auto">
-          Añade tu enlace de Cal.com en <code class="font-mono text-[var(--color-ink)]">booking.calEmbedUrl</code> o en cada servicio dentro de <code class="font-mono text-[var(--color-ink)]">src/config/salon.config.js</code>.
-        </p>
+      <div class="flex flex-col items-center py-6 px-3 text-center space-y-3">
+        <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-[color-mix(in_srgb,var(--color-accent)_10%,transparent)] text-[var(--color-accent)]" aria-hidden="true">
+          <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+            <rect x="3" y="4" width="18" height="17" rx="3"/>
+            <path stroke-linecap="round" d="M8 2v4M16 2v4M3 10h18"/>
+          </svg>
+        </div>
+        <div class="space-y-1">
+          <p class="text-base font-semibold tracking-tight text-[var(--color-ink)]">Reserva online disponible muy pronto</p>
+          <p class="text-xs text-[var(--color-muted)] max-w-xs mx-auto leading-relaxed">
+            Estamos preparando nuestra agenda online para que puedas elegir día y hora directamente desde aquí.
+          </p>
+        </div>
       </div>
     `;
   } else {
@@ -380,7 +409,7 @@ function renderBookingSection() {
           <p class="text-sm text-[var(--color-muted)]">
             Pulsa el botón para elegir día y hora en nuestra agenda externa.
           </p>
-          <a href="${escapeHtml(safeTargetUrl)}" target="_blank" rel="noopener noreferrer" class="btn-primary badge-pill">
+          <a href="${escapeHtml(safeTargetUrl)}" target="_blank" rel="noopener noreferrer" class="btn-pill-primary badge-pill">
             ${escapeHtml(fallbackLabel)}
           </a>
         </div>
@@ -392,8 +421,8 @@ function renderBookingSection() {
     const waHref = buildWhatsappHref(activeConfig.business?.whatsappNumber, selectedService?.name);
     if (waHref) {
       secondaryActions.innerHTML = `
-        <a href="${isWireframe ? '#whatsapp-wireframe' : escapeHtml(waHref)}" ${isWireframe ? '' : 'target="_blank" rel="noopener noreferrer"'} class="btn-secondary badge-pill">
-          Consultar o pedir cita por WhatsApp
+        <a href="${isWireframe ? '#whatsapp-wireframe' : escapeHtml(waHref)}" ${isWireframe ? '' : 'target="_blank" rel="noopener noreferrer"'} class="btn-pill-secondary badge-pill">
+          Pedir cita o consultar por WhatsApp
         </a>
       `;
     } else {
@@ -424,57 +453,52 @@ function renderFooter() {
 
   footer.classList.remove('hidden');
 
-  const hoursHtml =
-    hours.length > 0
-      ? `
-      <div class="space-y-1.5">
-        <p class="font-semibold text-[var(--color-ink)]">Horario</p>
-        <ul class="space-y-1">
-          ${hours
-            .map(
-              (h) => `
-            <li class="flex justify-between gap-4">
-              <span>${escapeHtml(cleanText(h.days))}</span>
-              <span class="font-medium text-[var(--color-ink)] tabular-nums">${escapeHtml(cleanText(h.time))}</span>
-            </li>
-          `
-            )
-            .join('')}
-        </ul>
-      </div>
-    `
-      : '';
+  const rows = [];
 
-  const infoItems = [];
+  hours.forEach((h) => {
+    rows.push(`
+      <div class="flex items-center justify-between gap-4 px-5 py-3.5 text-sm">
+        <span class="text-[var(--color-muted)]">${escapeHtml(cleanText(h.days))}</span>
+        <span class="font-medium text-[var(--color-ink)] tabular-nums text-right">${escapeHtml(cleanText(h.time))}</span>
+      </div>
+    `);
+  });
+
   if (address) {
-    infoItems.push(
-      mapsUrl
-        ? `<a href="${escapeHtml(mapsUrl)}" ${mapsUrl.startsWith('#') ? '' : 'target="_blank" rel="noopener noreferrer"'} class="underline underline-offset-4 hover:text-[var(--color-ink)]">${escapeHtml(address)}</a>`
-        : `<span>${escapeHtml(address)}</span>`
-    );
+    rows.push(`
+      <div class="flex items-center justify-between gap-4 px-5 py-3.5 text-sm">
+        <span class="text-[var(--color-muted)]">Ubicación</span>
+        ${
+          mapsUrl
+            ? `<a href="${escapeHtml(mapsUrl)}" ${mapsUrl.startsWith('#') ? '' : 'target="_blank" rel="noopener noreferrer"'} class="font-medium text-[var(--color-accent)] hover:underline underline-offset-4 text-right">${escapeHtml(address)}</a>`
+            : `<span class="font-medium text-[var(--color-ink)] text-right">${escapeHtml(address)}</span>`
+        }
+      </div>
+    `);
   }
+
   if (phoneDisplay && telDigits) {
-    infoItems.push(
-      `<a href="${isWireframe ? '#telefono-wireframe' : `tel:${escapeHtml(telDigits)}`}" class="hover:text-[var(--color-ink)]">${escapeHtml(phoneDisplay)}</a>`
-    );
+    rows.push(`
+      <div class="flex items-center justify-between gap-4 px-5 py-3.5 text-sm">
+        <span class="text-[var(--color-muted)]">Teléfono</span>
+        <a href="${isWireframe ? '#telefono-wireframe' : `tel:${escapeHtml(telDigits)}`}" class="font-medium text-[var(--color-ink)] tabular-nums hover:underline underline-offset-4">${escapeHtml(phoneDisplay)}</a>
+      </div>
+    `);
   }
+
   if (instagramUrl) {
-    infoItems.push(
-      `<a href="${escapeHtml(instagramUrl)}" ${instagramUrl.startsWith('#') ? '' : 'target="_blank" rel="noopener noreferrer"'} class="underline underline-offset-4 hover:text-[var(--color-ink)]">Instagram</a>`
-    );
+    rows.push(`
+      <div class="flex items-center justify-between gap-4 px-5 py-3.5 text-sm">
+        <span class="text-[var(--color-muted)]">Instagram</span>
+        <a href="${escapeHtml(instagramUrl)}" ${instagramUrl.startsWith('#') ? '' : 'target="_blank" rel="noopener noreferrer"'} class="font-medium text-[var(--color-accent)] hover:underline underline-offset-4">Ver perfil</a>
+      </div>
+    `);
   }
 
   footer.innerHTML = `
-    <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
-      ${hoursHtml}
-      ${
-        infoItems.length > 0
-          ? `<div class="space-y-1.5 ${hoursHtml ? 'sm:text-right' : ''}">
-              <p class="font-semibold text-[var(--color-ink)]">Ubicación y contacto</p>
-              <div class="flex flex-col gap-1 ${hoursHtml ? 'sm:items-end' : ''}">${infoItems.join('')}</div>
-            </div>`
-          : ''
-      }
+    <h2 class="ios-section-label">Información práctica</h2>
+    <div class="ios-card divide-y ios-divider overflow-hidden">
+      ${rows.join('')}
     </div>
   `;
 }
